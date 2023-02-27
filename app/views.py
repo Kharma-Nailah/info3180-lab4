@@ -42,10 +42,31 @@ def upload():
 
     return render_template('upload.html',form=form)
 
+def get_uploaded_images():
+    rootdir=os.getcwd()
+    upath= rootdir + '/uploads'
+    ulst=[]
+    for subdir, dirs, files in os.walk(upath):
+        for file in files:
+            if file.endswith(('.png', '.jpg', '.jpeg', '.PNG', '.JPG', '.JPEG')):
+                ulst.append(file)
+    return ulst
+
+@app.route('/uploads/<filename>')
+def get_image(filename):
+    if not session.get('logged_in'):
+        abort(401)
+    root_dir=os.getcwd()
+    return send_from_directory(os.path.join(root_dir,app.config['UPLOAD_FOLDER']), filename)
+
+@app.route('/files')
+@login_required 
+def files():   
+    files=get_uploaded_images()
+    return render_template('files.html', file_list=files)
 
 @app.route('/login', methods=['POST', 'GET'])
 def login():
-    print("This is login")
     form = LoginForm()
 
     # change this to actually validate the entire form submission
@@ -71,9 +92,16 @@ def login():
             return redirect(url_for("upload"))  # The user should be redirected to the upload form instead
         else:
             flash("Username or Password is Invalid. Please try again!")
-        print("\n\n Bottom of function\n\n")
         flash_errors(form)
     return render_template("login.html", form=form)
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    #session.pop('logged_in', None)
+    flash('You are now logged out', 'success')
+    return redirect(url_for('home'))
 
 # user_loader callback. This callback is used to reload the user object from
 # the user ID stored in the session
